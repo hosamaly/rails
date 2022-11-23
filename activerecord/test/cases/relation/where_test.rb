@@ -91,6 +91,17 @@ module ActiveRecord
       assert_empty Topic.where(last_read: "")
     end
 
+    def test_where_with_null_value_for_non_null_column
+      assert_empty Author.where(name: nil)
+      assert_queries(0) { Author.where(name: nil).to_a }
+      assert_queries(0) { Author.where(name: nil).where(organization_id: "abc").to_a }
+      assert_queries(0) { Author.where(organization_id: "abc").where(name: nil).to_a }
+      assert_queries(0) { Author.where(organization_id: "abc", name: nil).to_a }
+
+      # it shouldn't be confused by joined columns
+      assert_queries(1) { Author.left_joins(:author_address).where(author_addresses: { id: nil }).to_a }
+    end
+
     def test_rewhere_on_root
       assert_equal posts(:welcome), Post.rewhere(title: "Welcome to the weblog").first
     end

@@ -840,8 +840,12 @@ module ActiveRecord
     end
 
     def where!(opts, *rest) # :nodoc:
-      self.where_clause += build_where_clause(opts, rest)
-      self
+      new_clause = build_where_clause(opts, rest)
+      self.where_clause += new_clause
+      return self unless nulls_in_non_null_columns?(new_clause)
+
+      relation = mutable? ? self : spawn
+      relation.extending!(NullRelation)
     end
 
     # Allows you to change a previously set where condition for a given attribute, instead of appending to that condition.
@@ -1450,9 +1454,12 @@ module ActiveRecord
         )
       end
 
+      def mutable?
+        !@loaded && !@arel
+      end
+
       def assert_mutability!
-        raise ImmutableRelation if @loaded
-        raise ImmutableRelation if defined?(@arel) && @arel
+        raise ImmutableRelation unless mutable?
       end
 
       def build_arel(aliases = nil)
@@ -1893,6 +1900,20 @@ module ActiveRecord
             v2 = v2.uniq
           end
           v1 == v2
+        end
+      end
+
+      def nulls_in_non_null_columns?(predicates)
+        predicates.any? do |node|
+          case node
+          when Arel::Nodes::Equality
+            attribute = node.left
+            node.right.nil? && attribute.relation == table && columns_hash[attribute.name]&.null == false
+          when Arel::Nodes::And
+            nulls_in_non_null_columns?(node.children)
+          else
+            false
+          end
         end
       end
   end

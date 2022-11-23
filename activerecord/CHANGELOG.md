@@ -1,3 +1,8 @@
+*   Queries with `where` conditions that filter for a `nil` value in a non-null column
+    are now skipped. They act as an empty query without invoking the database.
+
+    *Hosam Aly*
+
 *   `has_one` and `belongs_to` associations now define a `reset_association` method
     on the owner model (where `association` is the name of the association). This
     method unloads the cached associate record, if any, and causes the next access

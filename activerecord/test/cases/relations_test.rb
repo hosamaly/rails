@@ -1151,7 +1151,7 @@ class RelationTest < ActiveRecord::TestCase
   def test_any
     posts = Post.all
 
-    assert_queries(3) do
+    assert_queries(2) do
       assert posts.any? # Uses COUNT()
       assert_not_predicate posts.where(id: nil), :any?
 
